@@ -10,16 +10,17 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 updater = Updater("2121509067:AAHhIvVRswapHu5ucYCuSmZ8IhyGnX86k4s")
 
-# Aquests metodes s'anomenen "command handlers" 
+
 def start(update, context):
     user = update.effective_user
     update.message.reply_markdown_v2(f"Bones {user.mention_markdown_v2()}\!\nAquest bot et permet descarregar MP3 a partir d'enllaços de YouTube, així com editar\\-los a partir d'unes marques de temps o \"timestamps\"\\.\nSi vols aprendre més sobre les funcions d'aquest bot escriu /help\\.")
 
-
+#La funcio help fa una petita explicacio de les funcions que te el bot
 def help_command(update, context):
-    update.message.reply_text("Aquest bot té dos úniques comandes.\n/start: Dona una breu introducció sobre la funció del bot.\n/url: Espera a que l'usuari entri una URL per descarregar el MP3. Un cop ha rebut la URL revisarà si és vàlida o no, en cas de ser-ho descarregarà el arxiu d'audio MP3 i preguntarà a l'usuari què vol fer\\. Pots descarregar els arxius d'audio sense editar o editar\\-los per crear un retall o \"clip\"")
+    update.message.reply_text("Aquest bot té dos úniques comandes.\n/start: Dona una breu introducció sobre la funció del bot.\n/url arguments (YouTube URL): Espera a que l'usuari entri una URL per descarregar el MP3. Un cop ha rebut la URL revisarà si és vàlida o no, en cas de ser-ho descarregarà el arxiu d'audio MP3 i preguntarà a l'usuari què vol fer\\. Pots descarregar els arxius d'audio sense editar o editar\\-los per crear un retall o \"clip\"")
 
-
+#Aquesta funció s'encarrega de que l'usuari introdueixi els paràmetres que calen, es a dir, una URL de YouTube.
+#En cas que l'usuari no introdueixi cap parametre el bot li advertira dient que no ha passat cap argument.
 def get_url(update, context):
     try:
         url = str(context.args[0])
@@ -27,6 +28,9 @@ def get_url(update, context):
     except (IndexError, ValueError) as e:
         update.message.reply_text("No has passat cap argument!")
 
+#Carrega tota la configuracio de la llibreria youtube_dl i descarrega a partir de la URL que l'usuari ha introduit
+#un MP3, un cop l'arxiu s'ha descarregat correctament, el bot envia l'arixu d'audio al usuari.
+#En cas d'haver-hi un error saltara una excepcio dient que torni a provar mes tard o provi amb un altre enllaç.
 def check_url(url, update, context):
     try:
         update.message.reply_text("Estem descarregant el teu audio, això podria tardar uns minuts.")
@@ -69,7 +73,6 @@ def main():
     # Start the Bot
     updater.start_polling()
 
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
     updater.idle()
 
 
