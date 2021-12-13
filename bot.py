@@ -1,4 +1,9 @@
+
+# -- coding: latin-1 --
+
+import telegram
 import youtube_dl
+import yt_dlp
 import logging
 import os
 from telegram import Update, ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -9,17 +14,16 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 logger = logging.getLogger(__name__)
-updater = Updater("2077856255:AAFlBNNNkm1IaDMI8mUatDGpz5X15idMPo0")
+updater = Updater("2064694571:AAEl-ZpGBdgxekKRSENYCkaSXFj0YGolA60")
 
 # Aquests metodes s'anomenen "command handlers" 
 def start(update, context):
     user = update.effective_user
-    update.message.reply_markdown_v2(f"Bones {user.mention_markdown_v2()}\!\nAquest bot et permet descarregar MP3 a partir d'enllaços de YouTube, així com editar\\-los a partir d'unes marques de temps o \"timestamps\"\\.\nSi vols aprendre més sobre les funcions d'aquest bot escriu /help\\.")
+    update.message.reply_markdown_v2(f"Bones {user.mention_markdown_v2()}\!\nAquest bot et permet descarregar MP3 a partir d'enllaços de YouTube, així com editar\\-los a partir d'unes marques de temps o \"timestamps\"\\.\nSi vols aprendre més sobre les funcions d'aquest bot escriu /help")
 
 
 def help_command(update, context):
     update.message.reply_text("Aquest bot té dos úniques comandes.\n/start: Dona una breu introducció sobre la funció del bot.\n/url: Espera a que l'usuari entri una URL per descarregar el MP3. Un cop ha rebut la URL revisarà si és vàlida o no, en cas de ser-ho descarregarà el arxiu d'audio MP3 i preguntarà a l'usuari què vol fer\\. Pots descarregar els arxius d'audio sense editar o editar\\-los per crear un retall o \"clip\"")
-
 
 def get_url(update, context):
     try:
@@ -35,7 +39,7 @@ def check_url(url, update, context):
         mp3_info = youtube_dl.YoutubeDL().extract_info(
             url = video_url,download=False
         )
-
+        global filename
         filename = f"{mp3_info['title']}.mp3"
         
         options={
@@ -44,12 +48,10 @@ def check_url(url, update, context):
             'outtmpl': "./MP3/"+ filename,
         }
 
-        with youtube_dl.YoutubeDL(options) as ydl:
-            ydl.download([mp3_info['webpage_url']])
+        with yt_dlp.YoutubeDL(options) as ydl:
+            ydl.download(video_url)
         
         #Definim variables globals per accedir-hi més tard
-        global currentFilename
-        currentFilename = filename
         global chatid
         chatid = update.message.chat_id
         
@@ -71,46 +73,57 @@ def check_url(url, update, context):
         print(e)
         update.message.reply_text("Sembla que ha hagut un error... Torna a intentar-ho més tard o prova amb un altre video.")
 
-def echo(update, context):
-    update.message.reply_markdown_v2(update.message.text)
-    print(update.message.text)
+# Funcion que guarda el texto
+def reply(update: Update, context: CallbackContext):                     
+    user_input = update.message.text
+    x = user_input.split(" ")
+
+    if (len(x) == 3)  and (x[0].lower() == "canviar") and (x[1].lower() == "longitud"):
+        startTime = x[2]
+        startTimeHours = startTime[0:2]
+        startTimeMinutes = startTime[3:5]
+        startTimeSeconds = startTime[6:8]
+        global startPoint
+        startPoint = str(startTimeHours) + ":" + str(startTimeMinutes) + ":" + str(startTimeSeconds)
+        print(startPoint)
+    
+    if (len(x) == 3)  and (x[0].lower() == "canviar") and (x[1].lower() == "temps"):
+        length = x[2]
+        lengthHours = length[0:2]
+        lengthMinutes = length[3:5]
+        lengthSeconds = length[6:8]
+        global fileLength
+        fileLength = str(lengthHours) + ":" + str(lengthMinutes) + ":" + str(lengthSeconds)
+        print(fileLength)
+
+    print(user_input)
+    return user_input
 
 def ask_for_clip(update: Update, context: CallbackContext):
     """Parses the CallbackQuery and updates the message text."""
     query = update.callback_query
     query.answer()
     print("queryData: "+query.data)
-    if query.data =='Sí':
-        query.edit_message_text(text=f"EEEEEEEEntra el temps inicial en format (HH:mm:ss")
-        echo(update, context)
-        print("echo passado")
-        #create_clip
-
-    if query.data == "No":
+    if query.data =='Sí' and fileLength  !=None and startPoint != None:
+        create_clip(update, context)
+    elif query.data == "No":
         query.edit_message_text(text=f"Aquí tens l'audio sense editar:")
-        updater.bot.send_audio(chat_id=chatid, audio=open(f'./MP3/{currentFilename}', 'rb'))
+        updater.bot.send_audio(chat_id=chatid, audio=open(f'./MP3/{filename}', 'rb'))
+    elif fileLength == None and startPoint == None:
+        update.message.reply_markdown_v2("Sembla que no has definit la longitud del retall o el punt de començament")
 
     
-def create_clip(update, context):
+def create_clip(update: Update, context: CallbackContext):
     '''Hay que cambiarlo para que entre el usuario los datos desde el chat
     esto no nos sirve porque es para la terminal'''
-    filename = input("Name of file to clip: ")
-    startTime = input("Input the start time (HH:mm:ss): ")
-    fileLength = input("Input the length of the clip (HH:mm:ss): ")
-
-    startTimeHours = startTime[0:2]
-    startTimeMinutes = startTime[3:5]
-    startTimeSeconds = startTime[6:8]
-
     try:
-        startPoint = str(startTimeHours) + ":" + str(startTimeMinutes) + ":" + str(startTimeSeconds)
-        print(startPoint)
+        print(f"Start: {startPoint}")
         print(f"Length: {fileLength}")
 
-        os.system(f"ffmpeg -ss {startPoint} -i test.mp3 -t {fileLength} {filename}.mp3")
+        os.system(f'ffmpeg -ss {startPoint} -i MP3/"{filename}" -t {fileLength} "{filename}_clip.mp3"')
     except Exception as e:
         print(e)
-        print("Error, introdueix un format correcte. ")    
+        update.message.reply_markdown_v2("Sembla que no has introduit el format de manera correcta. ")    
 
 def main():
     ### Settings ###
@@ -127,6 +140,8 @@ def main():
     dispatcher.add_handler(CommandHandler("url", get_url))
     #Handler per veure la resposta de l'usuari al prémer un butó.
     dispatcher.add_handler(CallbackQueryHandler(ask_for_clip))
+    #Handler que actua cuando encuentra texto del usuario
+    dispatcher.add_handler(MessageHandler(Filters.text, reply))         # Uso handler y muestra que funciona por el terminal
 
     # Start the Bot
     updater.start_polling()
