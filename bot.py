@@ -127,10 +127,12 @@ def ask_for_clip(update: Update, context: CallbackContext):
     """Parses the CallbackQuery and updates the message text."""
     query = update.callback_query   # Guarda en aquesta variable el nom del botó pulsat per l'usuari
     query.answer() 
+    #print("query answer: "+ query.answer())
+    print("query data: "+ str(query.data))
     try:
-        if query.data =='Sí' and fileLength != None and startPoint != None: # En cas afirmatiu
+        if str(query.data) =='Sí' and fileLength != None and startPoint != None: # En cas afirmatiu
             create_clip() # Crida la funció que retalla l'audio
-        if query.data == "No": # En cas negatiu descarrega l'audio sense editarlo i el mostra pel chat
+        if str(query.data) == "No": # En cas negatiu descarrega l'audio sense editarlo i el mostra pel chat
             query.edit_message_text(text=f"Aquí tens l'audio sense editar:") # Mostra el text següent pel chat
             updater.bot.send_audio(chat_id=chatid, audio=open(f'./MP3/{filename}', 'rb')) # L'envia amb el seu nom
     except NameError:   # En cas d'haver algun error mostra el missatge següent 
@@ -140,7 +142,9 @@ def ask_for_clip(update: Update, context: CallbackContext):
 def create_clip():
     try:
         print(str(lengthInSeconds + startInSeconds))
-        if videoLength < (lengthInSeconds + startInSeconds): # Si introdueixes els paràmetres correctement
+        print(str(videoLength))
+        if videoLength > (lengthInSeconds + startInSeconds): # Si introdueixes els paràmetres correctement
+            print("esta recortando")
             os.system(f'ffmpeg -ss {startPoint} -i ./MP3/"{filename}" -y -t {fileLength} ./Clips/"clip_{filename}"')
             updater.bot.send_audio(chat_id=chatid, audio=open(f'./Clips/clip_{filename}', 'rb'))
     except Exception as e: # En cas contrari, el programa mostrarà el text següent
